@@ -1,0 +1,486 @@
+/**
+ *Submitted for verification at BscScan.com on 2024-02-16
+*/
+
+/**
+ * Voxel Ape - $VOXELAPE
+ * Supply: 1,000,000,000
+ * Buy Tax: 2%
+ * Sell Tax: 2%
+ */
+
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+// OpenZeppelin Contracts v4.4.1 (utils/Context.sol)
+abstract contract Context {
+
+    function _msgSender() internal view virtual returns (address) {
+        return msg.sender;
+    }
+
+    function _msgData() internal view virtual returns (bytes calldata) {
+        return msg.data;
+    }
+}
+
+// OpenZeppelin Contracts (last updated v4.7.0) (access/Ownable.sol)
+abstract contract Ownable is Context {
+    address private _owner;
+
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    constructor() {
+        _transferOwnership(_msgSender());
+    }
+
+    modifier onlyOwner() {
+        _checkOwner();
+        _;
+    }
+
+    function owner() public view virtual returns (address) {
+        return _owner;
+    }
+
+    function _checkOwner() internal view virtual {
+        require(owner() == _msgSender(), "Ownable: caller is not the owner");
+    }
+
+    function renounceOwnership() public virtual onlyOwner {
+        _transferOwnership(address(0));
+    }
+
+    function transferOwnership(address newOwner) public virtual onlyOwner {
+        require(newOwner != address(0), "Ownable: new owner is the zero address");
+        _transferOwnership(newOwner);
+    }
+
+    function _transferOwnership(address newOwner) internal virtual {
+        address oldOwner = _owner;
+        _owner = newOwner;
+        emit OwnershipTransferred(oldOwner, newOwner);
+    }
+}
+
+// OpenZeppelin Contracts (last updated v4.6.0) (token/BEP20/IBEP20.sol)
+interface IBEP20 {
+
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+
+    function totalSupply() external view returns (uint256);
+    function balanceOf(address account) external view returns (uint256);
+    function transfer(address to, uint256 amount) external returns (bool);
+    function allowance(address owner, address spender) external view returns (uint256);
+    function approve(address spender, uint256 amount) external returns (bool);
+    function transferFrom(address from, address to, uint256 amount) external returns (bool);
+}
+
+// OpenZeppelin Contracts v4.4.1 (token/BEP20/extensions/IBEP20Metadata.sol)
+interface IBEP20Metadata is IBEP20 {
+
+    function name() external view returns (string memory);
+    function symbol() external view returns (string memory);
+    function decimals() external view returns (uint8);
+}
+
+// OpenZeppelin Contracts (last updated v4.8.0) (token/BEP20/BEP20.sol)
+contract BEP20 is Context, IBEP20, IBEP20Metadata {
+    mapping(address => uint256) private _balances;
+    mapping(address => mapping(address => uint256)) private _allowances;
+
+    uint256 private _totalSupply;
+    string private _name;
+    string private _symbol;
+
+    constructor(string memory name_, string memory symbol_) {
+        _name = name_;
+        _symbol = symbol_;
+    }
+
+    function name() public view virtual override returns (string memory) {
+        return _name;
+    }
+
+    function symbol() public view virtual override returns (string memory) {
+        return _symbol;
+    }
+
+    function decimals() public view virtual override returns (uint8) {
+        return 18;
+    }
+
+    function totalSupply() public view virtual override returns (uint256) {
+        return _totalSupply;
+    }
+
+    function balanceOf(address account) public view virtual override returns (uint256) {
+        return _balances[account];
+    }
+
+    function transfer(address to, uint256 amount) public virtual override returns (bool) {
+        address owner = _msgSender();
+        _transfer(owner, to, amount);
+        return true;
+    }
+
+    function allowance(address owner, address spender) public view virtual override returns (uint256) {
+        return _allowances[owner][spender];
+    }
+
+    function approve(address spender, uint256 amount) public virtual override returns (bool) {
+        address owner = _msgSender();
+        _approve(owner, spender, amount);
+        return true;
+    }
+
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) public virtual override returns (bool) {
+        address spender = _msgSender();
+        _spendAllowance(from, spender, amount);
+        _transfer(from, to, amount);
+        return true;
+    }
+
+    function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
+        address owner = _msgSender();
+        _approve(owner, spender, allowance(owner, spender) + addedValue);
+        return true;
+    }
+
+    function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
+        address owner = _msgSender();
+        uint256 currentAllowance = allowance(owner, spender);
+        require(currentAllowance >= subtractedValue, "BEP20: decreased allowance below zero");
+        unchecked {
+            _approve(owner, spender, currentAllowance - subtractedValue);
+        }
+
+        return true;
+    }
+
+    function _transfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual {
+        require(from != address(0), "BEP20: transfer from the zero address");
+        require(to != address(0), "BEP20: transfer to the zero address");
+
+        _beforeTokenTransfer(from, to, amount);
+
+        uint256 fromBalance = _balances[from];
+        require(fromBalance >= amount, "BEP20: transfer amount exceeds balance");
+        unchecked {
+            _balances[from] = fromBalance - amount;
+            // Overflow not possible: the sum of all balances is capped by totalSupply, and the sum is preserved by
+            // decrementing then incrementing.
+            _balances[to] += amount;
+        }
+
+        emit Transfer(from, to, amount);
+
+        _afterTokenTransfer(from, to, amount);
+    }
+
+    function _mint(address account, uint256 amount) internal virtual {
+        require(account != address(0), "BEP20: mint to the zero address");
+
+        _beforeTokenTransfer(address(0), account, amount);
+
+        _totalSupply += amount;
+        unchecked {
+            // Overflow not possible: balance + amount is at most totalSupply + amount, which is checked above.
+            _balances[account] += amount;
+        }
+        emit Transfer(address(0), account, amount);
+
+        _afterTokenTransfer(address(0), account, amount);
+    }
+
+    function _burn(address account, uint256 amount) internal virtual {
+        require(account != address(0), "BEP20: burn from the zero address");
+
+        _beforeTokenTransfer(account, address(0), amount);
+
+        uint256 accountBalance = _balances[account];
+        require(accountBalance >= amount, "BEP20: burn amount exceeds balance");
+        unchecked {
+            _balances[account] = accountBalance - amount;
+            // Overflow not possible: amount <= accountBalance <= totalSupply.
+            _totalSupply -= amount;
+        }
+
+        emit Transfer(account, address(0), amount);
+
+        _afterTokenTransfer(account, address(0), amount);
+    }
+
+    function _approve(
+        address owner,
+        address spender,
+        uint256 amount
+    ) internal virtual {
+        require(owner != address(0), "BEP20: approve from the zero address");
+        require(spender != address(0), "BEP20: approve to the zero address");
+
+        _allowances[owner][spender] = amount;
+        emit Approval(owner, spender, amount);
+    }
+
+    function _spendAllowance(
+        address owner,
+        address spender,
+        uint256 amount
+    ) internal virtual {
+        uint256 currentAllowance = allowance(owner, spender);
+        if (currentAllowance != type(uint256).max) {
+            require(currentAllowance >= amount, "BEP20: insufficient allowance");
+            unchecked {
+                _approve(owner, spender, currentAllowance - amount);
+            }
+        }
+    }
+
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual {}
+
+    function _afterTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual {}
+}
+
+interface DexFactory {
+    function createPair(address tokenA, address tokenB) external returns (address pair);
+}
+
+interface DexRouter {
+    function factory() external pure returns (address);
+    function WETH() external pure returns (address);
+    function addLiquidityETH(
+        address token,
+        uint256 amountTokenDesired,
+        uint256 amountTokenMin,
+        uint256 amountETHMin,
+        address to,
+        uint256 deadline
+    )
+        external
+        payable
+        returns (uint256 amountToken, uint256 amountETH, uint256 liquidity);
+
+    function swapExactTokensForETHSupportingFeeOnTransferTokens(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        address[] calldata path,
+        address to,
+        uint256 deadline
+    ) external;
+}
+
+contract VOXELAPE is BEP20, Ownable {
+
+    // State Variables
+    uint256 private constant _totalSupply = 1_000_000_000 * 1e18;
+
+    DexRouter public immutable uniswapRouter;
+    address public immutable pairAddress;
+    bool public tradingEnabled = false;
+    uint256 public startTradingBlock;
+    address public developmentWallet = 0xd89D01e238FB83AE315909AAdb706fA858Ed646b;
+    mapping(address => bool) private whitelisted;
+    bool public swapAndLiquifyEnabled = true;
+    uint256 public swapTokensAtAmount = _totalSupply / 100000;
+    bool public isSwapping = false;
+
+    // Structs
+    struct Tax {
+        uint256 developmentTax;
+    }
+
+    Tax public buyTaxes = Tax(2);
+    Tax public sellTaxes = Tax(2);
+    Tax public transferTaxes = Tax(0);
+
+    // Events
+    event developmentWalletChanged(address indexed _trWallet);
+    event BuyTaxesUpdated(uint256 indexed _trFee);
+    event SellTaxesUpdated(uint256 indexed _trFee);
+    event TransferTaxesUpdated(uint256 indexed _trFee);
+    event SwapThresholdUpdated(uint256 indexed _newThreshold);
+    event InternalSwapStatusUpdated(bool indexed _status);
+    event Whitelist(address indexed _target, bool indexed _status);
+    event ClearedETH(uint256 amount);
+    event ClearedBEP20(address tokenAddress, address to, uint256 amount);
+
+    // Constructor
+    constructor() BEP20("Voxel Ape", "VOXELAPE") {
+
+        uniswapRouter = DexRouter(0x10ED43C718714eb63d5aA57B78B54704E256024E); //MAIN BSC
+        pairAddress = DexFactory(uniswapRouter.factory()).createPair(
+            address(this),
+            uniswapRouter.WETH()
+        );
+        _mint(msg.sender, _totalSupply);
+        whitelisted[msg.sender] = true;
+        whitelisted[address(uniswapRouter)] = true;
+        whitelisted[address(this)] = true;
+    }
+
+    // Public Functions
+    function enableTrading() external onlyOwner {
+        require(!tradingEnabled, "STOP! Trading is live");
+        tradingEnabled = true;
+        startTradingBlock = block.number;
+    }
+
+    function setBuyTaxes(uint256 _developmentTax) external onlyOwner {
+        require(_developmentTax <= 3, "STOP! No buy tax over 3%");
+        buyTaxes.developmentTax = _developmentTax;
+        emit BuyTaxesUpdated(_developmentTax);
+    }
+
+    function setSellTaxes(uint256 _developmentTax) external onlyOwner {
+        require(_developmentTax <= 3, "STOP! No sell tax over 3%");
+        sellTaxes.developmentTax = _developmentTax;
+        emit SellTaxesUpdated(_developmentTax);
+    }
+
+    function setTransferTaxes(uint256 _transferTaxes) external onlyOwner {
+        require(_transferTaxes <= 1, "STOP! No transfer tax over 1%");
+        transferTaxes.developmentTax = _transferTaxes;
+        emit TransferTaxesUpdated(_transferTaxes);
+    }
+
+    function setSwapTokensAtAmount(uint256 _newAmount) external onlyOwner {
+        require(
+            _newAmount > 0 && _newAmount <= (_totalSupply * 5) / 1000,
+            "STOP! Swap threshold cannot be over 0.5% of total supply!"
+        );
+        swapTokensAtAmount = _newAmount;
+        emit SwapThresholdUpdated(swapTokensAtAmount);
+    }
+
+    function toggleSwapping() external onlyOwner {
+        swapAndLiquifyEnabled = (swapAndLiquifyEnabled) ? false : true;
+    }
+
+    function setWhitelistStatus(address _wallet, bool _status) external onlyOwner {
+        whitelisted[_wallet] = _status;
+        emit Whitelist(_wallet, _status);
+    }
+
+    function setdevelopmentWallet(address _newdevelopment) external onlyOwner {
+        require(_newdevelopment != address(0), "STOP! No zero address");
+        require(_newdevelopment.code.length == 0, "STOP! No contract address");
+        developmentWallet = _newdevelopment;
+        emit developmentWalletChanged(_newdevelopment);
+    }
+
+    function clearBNB(uint256 weiAmount) external onlyOwner {	
+        require(address(this).balance >= weiAmount, "STOP! Not enough BNB to clear");
+        payable(msg.sender).transfer(weiAmount);	
+    }
+
+    function clearExternalToken(address _tokenAddr, address _account, uint256 _amount) external onlyOwner {	
+        require(_tokenAddr != address(this), "STOP! Native token clear is not allowed");	
+        IBEP20(_tokenAddr).transfer(_account, _amount);	// Only interact with trusted tokens
+    }
+
+    function checkWhitelist(address _wallet) external view returns (bool) {
+        return whitelisted[_wallet];
+    }
+
+    // Internal Functions
+    function _takeTax(
+        address _from,
+        address _to,
+        uint256 _amount
+    ) internal returns (uint256) {
+        if (whitelisted[_from] || whitelisted[_to]) {
+            return _amount;
+        }
+        uint256 totalTax = transferTaxes.developmentTax;
+
+        if (_to == pairAddress) {
+            totalTax = sellTaxes.developmentTax;
+        } else if (_from == pairAddress) {
+            totalTax = buyTaxes.developmentTax;
+        }
+
+        uint256 tax = 0;
+        if (totalTax > 0) {
+            tax = (_amount * totalTax) / 100;
+            super._transfer(_from, address(this), tax);
+        }
+        return (_amount - tax);
+    }
+
+    function _transfer(
+        address _from,
+        address _to,
+        uint256 _amount
+    ) internal virtual override {
+        require(_from != address(0), "STOP! Transfer from address zero");
+        require(_to != address(0), "STOP! Transfer to address zero");
+        require(_amount > 0, "STOP! Transfer amount must be greater than zero");
+        uint256 toTransfer = _takeTax(_from, _to, _amount);
+
+        bool canSwap = balanceOf(address(this)) >= swapTokensAtAmount;
+        if (
+
+            !whitelisted[_from] &&
+            !whitelisted[_to] 
+ 
+        ) {
+        require(tradingEnabled, "STOP! Trading is not live");
+            if (pairAddress == _to &&
+                swapAndLiquifyEnabled &&
+                canSwap&&
+                !isSwapping  ) 
+            {
+        internalSwap();
+            }
+        }
+        super._transfer(_from, _to, toTransfer);
+    }
+
+    function internalSwap() internal {
+        isSwapping = true;
+        uint256 taxAmount = balanceOf(address(this)); 
+        if (taxAmount == 0) {
+            return;
+        }
+        swapToETH(balanceOf(address(this)));
+       (bool success, ) = developmentWallet.call{value: address(this).balance}("");
+        require(success, "STOP! Failed transfer to tax wallet");
+        isSwapping = false;
+    }
+
+    // Private Functions
+    function swapToETH(uint256 _amount) internal {
+        address[] memory path = new address[](2);
+        path[0] = address(this);
+        path[1] = uniswapRouter.WETH();
+        _approve(address(this), address(uniswapRouter), _amount);
+        uniswapRouter.swapExactTokensForETHSupportingFeeOnTransferTokens(
+            _amount,
+            0,
+            path,
+            address(this),
+            block.timestamp
+        );
+    }
+
+    // Fallback and Receive Functions
+    receive() external payable {}
+}
